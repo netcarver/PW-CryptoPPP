@@ -58,20 +58,12 @@ class CryptoPPP extends Wire implements Module
 	{
 		$pack = '';
 
-$start = time();
-$o[] = "<pre>pack128( $num )</pre>";
 		while( $num ) {
 			$mod = bcmod( $num, 256 );
 			$ch  = chr( $mod );
 			$pack .= $ch;
 			//$pack .= chr( bcmod( $num, 256 ) );
 			$num = bcdiv( $num, 256, 0 );
-$o[] = "<pre>mod[$mod], num[$num]</pre>";
-$now = time();
-if( $now - $start > 5 ) {
-	$o[] = "pack128 stalled.";
-	die( join("\n", $o) );	// This should never take a few seconds, if it does, something is wrong.
-}
 		}
 		return $pack;
 	}
@@ -145,16 +137,16 @@ if( $now - $start > 5 ) {
 
 
 	/**
-	 * Default character set only has alphanumerics and excludes certain characters
+	 * This character set only has alphanumerics and excludes certain characters
 	 * that can be confused with others, for example, X and x are ommited as K and k
 	 * look similar in certain fonts. So are zero '0' and capital oh 'O',
 	 * lower el 'l' and numeric '1', '8' and capital 'b' (B) etc.
 	 **/
-#	const DEFAULT_CHARSET = 'abcdefghijkmnpqrstvwyzACDEFGHJKLMNPRTUVWYZ23456789';
+	const DISTINCT_CHARSET = 'abcdefghijkmnpqrstvwyzACDEFGHJKLMNPRTUVWYZ23456789';
 
 
 	/**
-	 * Use the default charset from grc.com/ppp
+	 * The default charset from grc.com/ppp
 	 **/
 	const DEFAULT_CHARSET = '!#%+23456789:=?@ABCDEFGHJKLMNPRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
