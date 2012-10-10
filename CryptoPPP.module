@@ -18,7 +18,7 @@ class CryptoPPP extends Wire implements Module
 		return array(
 			'title'    => 'PPP Crypto Library',
 			'summary'  => "Implements Steve Gibson's PPP one-time-pad system.",
-			'version'  => 300,
+			'version'  => 301,
 			'author'   => 'Portions by Orson Jones, Bob Somers, Daniel Hodder. Packaged as a module by Netcarver',
 			'singular' => true,
 			'autoload' => true,
@@ -159,11 +159,17 @@ if( $now - $start > 5 ) {
 	const DEFAULT_CHARSET = '!#%+23456789:=?@ABCDEFGHJKLMNPRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
 
+	static public function num2string( $number, $codelength=12, $charset=null )
+	{
+		return self::keyToToken( $number, $codelength, $charset );
+	}
+
+
 	/**
 	 * Converts a string-represented number (eg a key) into a string of characters
 	 * from the given charset.
 	 **/
-	static public function num2string( $number, $codelength=12, $charset=null )
+	static public function keyToToken( $number, $codelength=12, $charset=null )
 	{
 		if( !is_string($charset) )
 			$charset = self::DEFAULT_CHARSET;
@@ -189,11 +195,11 @@ if( $now - $start > 5 ) {
 	 * Converts the given string-represented number (key) into a sequence of strings
 	 * from the given charset, all joined by the given glue.
 	 *
-	 * eg. ProcessPPPToken::num2blocks( $key )  would give something like 'a4j6-n7N2'
+	 * eg. CryptoPPP::keyToTokenBlocks( $key )  would give something like 'a4j6-n7N2'
 	 **/
-	static public function num2blocks( $number , $blocklen=4, $blockcount=2, $glue='-', $charset=null )
+	static public function keyToTokenBlocks( $number , $blocklen=4, $blockcount=2, $glue='-', $charset=null )
 	{
-		$base = self::num2string( $number, ($blockcount * $blocklen), $charset );
+		$base = self::keyToToken( $number, ($blockcount * $blocklen), $charset );
 		$blocks = str_split( $base , $blocklen);
 		$blocks = join($glue,$blocks);
 		return $blocks;
