@@ -5,455 +5,440 @@
  * An implementation of Steve Gibson's Perfect Paper Passwords (PPP) system.
  *
  * PPP is a one-time-pad cryptographic system that allows easy provision of 2-factor
- * authentication for software applications at a very low-cost. Read more about PPP 
+ * authentication for software applications at a very low-cost. Read more about PPP
  * at http://www.grc.com/ppp/design.htm
  *
- * Portions copyright Orson Jones, Bob Somers, Daniel Hodder 
+ * Portions copyright Orson Jones, Bob Somers, Daniel Hodder
  **/
 class CryptoPPP extends Wire implements Module
 {
-
-	public static function getModuleInfo()
-	{
-		return array(
-			'title'    => 'PPP Crypto Library',
-			'summary'  => "Implements Steve Gibson's PPP one-time-pad system.",
-			'version'  => 301,
-			'author'   => 'Portions by Orson Jones, Bob Somers, Daniel Hodder. Packaged as a module by Netcarver',
-			'singular' => true,
-			'autoload' => true,
-			'href'     => 'http://www.grc.com/ppp/design.htm',
-		);
-	}
-
-
-    public function __construct() 
-	{
+    public static function getModuleInfo()
+    {
+        return array(
+            'title'    => __('PPP Crypto Library', __FILE__),
+            'summary'  => __("Implements Steve Gibson's PPP one-time-pad system.", __FILE__),
+            'version'  => 301,
+            'author'   => 'Portions by Orson Jones, Bob Somers, Daniel Hodder. Packaged as a module by Netcarver',
+            'singular' => true,
+            'autoload' => true,
+            'href'     => 'http://www.grc.com/ppp/design.htm',
+        );
     }
 
 
-
-	public function init()
-	{
-	}
-
+    public function __construct()
+    {
+    }
 
 
-	public function ___install()
-	{
-		$good = self::allGood();
-		if( is_string( $good )	) 
-			throw new WireException( $good );
-		else
-			$this->message( "Infrastructure needed for PPP is available on this platform." );
-	}
+    public function init()
+    {
+    }
 
 
+    public function ___install()
+    {
+        $good = self::allGood();
+        if (is_string($good))
+            throw new WireException($good);
+        else
+            $this->message("Infrastructure needed for PPP is available on this platform.");
+    }
 
 
-	/**
-	 * pack the 128 bit number into a binary string (bcmath style number to binary)
-	 **/
-	static protected function pack128( $num )
-	{
-		$pack = '';
+    /**
+     * pack the 128 bit number into a binary string (bcmath style number to binary)
+     **/
+    static protected function pack128($num)
+    {
+        $pack = '';
 
-		while( $num ) {
-			$mod = bcmod( $num, 256 );
-			$ch  = chr( $mod );
-			$pack .= $ch;
-			//$pack .= chr( bcmod( $num, 256 ) );
-			$num = bcdiv( $num, 256, 0 );
-		}
-		return $pack;
-	}
-
-
-
-	static protected function unpack128( $pack )
-	{
-		$pack = str_split( strrev( $pack )) ;
-		$num = '0' ;
-		foreach( $pack as $char ) {
-			$num = bcmul( $num, 256 ) ;
-			$num = bcadd( $num, ord( $char )) ;
-		}
-		return $num ;
-	}
+        while ($num) {
+            $mod = bcmod($num, 256);
+            $ch  = chr($mod);
+            $pack .= $ch;
+            //$pack .= chr(bcmod($num, 256));
+            $num = bcdiv($num, 256, 0);
+        }
+        return $pack;
+    }
 
 
-
-	static protected function blockchars( $length )
-	{
-		return floor(128/(log($length, 2)));
-	}
-
-
-
-	static protected function sortchars($charset)
-	{
-		$newchars = str_split($charset,1);
-		sort($newchars);
-		return implode('',$newchars);
-	}
+    static protected function unpack128($pack)
+    {
+        $pack = str_split(strrev($pack)) ;
+        $num = '0' ;
+        foreach ($pack as $char) {
+            $num = bcmul($num, 256) ;
+            $num = bcadd($num, ord($char)) ;
+        }
+        return $num ;
+    }
 
 
-
-	/**
-	 * Generates a number of random strings (keys.)
-	 *
-	 * CryptoPPP::genKeys() or CryptoPPP::genKeys(1) returns the key as a string.
-	 * CryptoPPP::genKeys(n) where n > 1 returns an array of key strings.
-	 **/
-	static public function genKeys( $count = 1 )
-	{
-		if( !is_int($count) || ($count < 0) )
-			$count = 1;
-
-		static $ext = false;
-		static $uname = false;
-		if( !$ext )
-		{
-			$ext   = get_loaded_extensions();
-			$uname = php_uname();
-		}
-
-		$keys = array();
-		while( $count-- )
-		{
-			$r = $ext;
-			$r[] = $uname;
-			$r[] = memory_get_usage();
-			$r = implode(microtime(), $r);
-			$keys[] = hash('sha256', $r);
-		}
-
-		if( count($keys) === 1 )
-			$keys = $keys[0];
-
-		return $keys;
-	}
+    static protected function blockchars($length)
+    {
+        return floor(128 / (log($length, 2)));
+    }
 
 
-
-	/**
-	 * This character set only has alphanumerics and excludes certain characters
-	 * that can be confused with others, for example, X and x are ommited as K and k
-	 * look similar in certain fonts. So are zero '0' and capital oh 'O',
-	 * lower el 'l' and numeric '1', '8' and capital 'b' (B) etc.
-	 **/
-	const DISTINCT_CHARSET = 'abcdefghijkmnpqrstvwyzACDEFGHJKLMNPRTUVWYZ23456789';
+    static protected function sortchars($charset)
+    {
+        $newchars = str_split($charset,1);
+        sort($newchars);
+        return implode('',$newchars);
+    }
 
 
-	/**
-	 * The default charset from grc.com/ppp
-	 **/
-	const DEFAULT_CHARSET = '!#%+23456789:=?@ABCDEFGHJKLMNPRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
+    /**
+     * Generates a number of random strings (keys.)
+     *
+     * CryptoPPP::genKeys() or CryptoPPP::genKeys(1) returns the key as a string.
+     * CryptoPPP::genKeys(n) where n > 1 returns an array of key strings.
+     **/
+    static public function genKeys($count = 1)
+    {
+        if (!is_int($count) || ($count < 0))
+            $count = 1;
+
+        static $ext = false;
+        static $uname = false;
+        if (!$ext) {
+            $ext   = get_loaded_extensions();
+            $uname = php_uname();
+        }
+
+        $keys = array();
+        while ($count--) {
+            $r = $ext;
+            $r[] = $uname;
+            $r[] = memory_get_usage();
+            $r = implode(microtime(), $r);
+            $keys[] = hash('sha256', $r);
+        }
+
+        if (count($keys) === 1)
+            $keys = $keys[0];
+
+        return $keys;
+    }
 
 
-	static public function num2string( $number, $codelength=12, $charset=null )
-	{
-		return self::keyToToken( $number, $codelength, $charset );
-	}
+    /**
+     * This character set only has alphanumerics and excludes certain characters
+     * that can be confused with others, for example, X and x are ommited as K and k
+     * look similar in certain fonts. So are zero '0' and capital oh 'O',
+     * lower el 'l' and numeric '1', '8' and capital 'b' (B) etc.
+     **/
+    const DISTINCT_CHARSET = 'abcdefghijkmnpqrstvwyzACDEFGHJKLMNPRTUVWYZ23456789';
 
 
-	/**
-	 * Converts a string-represented number (eg a key) into a string of characters
-	 * from the given charset.
-	 **/
-	static public function keyToToken( $number, $codelength=12, $charset=null )
-	{
-		if( !is_string($charset) )
-			$charset = self::DEFAULT_CHARSET;
-
-		$charset = self::sortchars($charset);
-		$length = strlen($charset);
-		$blockchars = self::blockchars($length);
-		$number = hash('sha256', $number);
-		$number = self::unpack128($number);
-
-		$chars = '';
-		while($codelength--)
-		{
-			$chars .= substr($charset,bcmod($number,$length),1);
-			$number = bcdiv($number,$length);
-		}
-		return $chars;
-	}
+    /**
+     * The default charset from grc.com/ppp
+     **/
+    const DEFAULT_CHARSET = '!#%+23456789:=?@ABCDEFGHJKLMNPRSTUVWXYZabcdefghijkmnopqrstuvwxyz';
 
 
-
-	/**
-	 * Converts the given string-represented number (key) into a sequence of strings
-	 * from the given charset, all joined by the given glue.
-	 *
-	 * eg. CryptoPPP::keyToTokenBlocks( $key )  would give something like 'a4j6-n7N2'
-	 **/
-	static public function keyToTokenBlocks( $number , $blocklen=4, $blockcount=2, $glue='-', $charset=null )
-	{
-		$base = self::keyToToken( $number, ($blockcount * $blocklen), $charset );
-		$blocks = str_split( $base , $blocklen);
-		$blocks = join($glue,$blocks);
-		return $blocks;
-	}
+    static public function num2string($number, $codelength=12, $charset=null)
+    {
+        return self::keyToToken( $number, $codelength, $charset );
+    }
 
 
-	static public function allGood()
-	{
-		$algos = hash_algos();
-		if (!in_array("sha256", $algos)) return "sha256 not available";
-		if (!is_callable('bcadd')) return "bcadd not available";
-		if (is_callable('mcrypt_list_algorithms'))
-		{
-			$mcrypt_algos = mcrypt_list_algorithms();
-			if (!in_array("rijndael-128", $mcrypt_algos)) return "rijndael-128 not available";
-		}
-		else
-			return "mcrypt not installed";
+    /**
+     * Converts a string-represented number (eg a key) into a string of characters
+     * from the given charset.
+     **/
+    static public function keyToToken($number, $codelength=12, $charset=null)
+    {
+        if (!is_string($charset))
+            $charset = self::DEFAULT_CHARSET;
 
-		return true;
-	}
+        $charset = self::sortchars($charset);
+        $length = strlen($charset);
+        $blockchars = self::blockchars($length);
+        $number = hash('sha256', $number);
+        $number = self::unpack128($number);
 
-	static protected function getPPPCode( $key, $sequence_num )
-	{
-		static $skey = false;
-		static $sk   = false;
-		if( $key !== $skey )
-		{
-			$sk = pack("H*", $key);
-			$skey = $key;    
-		}
-
-		$n_bits = self::pack128($sequence_num);
-		$enc_bits = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $sk, $n_bits, MCRYPT_MODE_ECB, str_repeat( "\0", 16 ));
-		$numdec = self::unpack128($enc_bits);
-		return $numdec;
-	}
+        $chars = '';
+        while ($codelength--)
+        {
+            $chars .= substr($charset,bcmod($number,$length),1);
+            $number = bcdiv($number,$length);
+        }
+        return $chars;
+    }
 
 
-	static public function getLotto($key, $code)
-	{
-		$numdec = self::getPPPCode($key, $code);
-		$chars = "";
-		for ($i = 0; $i < 5; $i++)
-		{
-			$chars .= bcadd(bcmod($numdec,56),1);
-			if ($i < 4)
-				$chars .= ", ";
-			else
-				$chars .= " / ";
-			$numdec = bcdiv($numdec,56);
-		}
-		$chars .= bcadd(bcmod($numdec,46),1);
-		return $chars;
-	}
-
-	// returns the nth number (Ex.: Port numbers, etc.)
-	static public function getNum($key, $code, $codemin, $codemax)
-	{
-		$length = 1+$codemax-$codemin;
-		$numdec = self::getPPPCode($key, $code);
-		return bcadd(bcmod($numdec,$length),$codemin);
-	}
-
-	// returns the nth port and code - Based on idea from Hank Beaver in the GRC newsgroups
-	static public function getPortCode($key, $code, $codemin, $codemax)
-	{
-		$codes = array();
-		$length = 1+$codemax-$codemin;
-		$numdec = self::getPPPCode($key, $code);
-		array_push($codes, bcadd(bcmod($numdec,$length),$codemin));
-		$numdec = bcdiv($numdec,$length);
-		$charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-		$length = strlen($charset);
-		$codelength = 2;
-		$chars = "";
-		for ($i = 0; $i < $codelength; $i++)
-		{
-			$chars .= substr($charset,bcmod($numdec,$length),1);
-			$numdec = bcdiv($numdec,$length);
-		}
-		array_push($codes, $chars);
-		return $codes;
-	}
-
-	// returns the nth code
-	static public function getCode($key, $code, $charset = null, $codelength = 4)
-	{
-		if( is_null($charset) )
-			$charset = self::DEFAULT_CHARSET;
-		$charset = self::sortchars($charset);
-		$length = strlen($charset);
-		$blockchars = self::blockchars($length);
-		$numdec = self::getPPPCode($key, $code);
-		$chars = "";
-		for ($i = 0; $i < $codelength; $i++)
-		{
-			$chars .= substr($charset,bcmod($numdec,$length),1);
-			$numdec = bcdiv($numdec,$length);
-		}
-		return $chars;
-	}
-
-	// return an array of the codes requested
-	static public function getCodes($key, $code, $num, $charset = null, $codelength = 4)
-	{
-		if( is_null($charset) )
-			$charset = self::DEFAULT_CHARSET;
-		$codes = array();
-		$first = $code;
-		$last = bcadd($code, $num);
-		$charset = self::sortchars($charset);
-		$length = strlen($charset);
-		$blockchars = self::blockchars($length);
-		#$sk = pack("H*", $key);
-		for ($h = $first; bccomp($h,$last) < 0; $h = bcadd($h,1))
-		{
-			#$n_bits = pack128($h);
-			#$enc_bits = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $sk, $n_bits, MCRYPT_MODE_ECB, str_repeat( "\0", 16 ));
-			#$numdec = unpack128($enc_bits);
-			$numdec = self::getPPPCode($key, $h);
-			$chars = "";
-			for ($i = 0; $i < $codelength; $i++)
-			{
-				$chars .= substr($charset,bcmod($numdec,$length),1);
-				$numdec = bcdiv($numdec,$length);
-			}
-			array_push($codes, $chars);
-		}
-		return $codes;
-	}
-
-	// prints a card
-	static public function printCard( $key, $charset, $codelength, $cardnum, $title="PPP Card", $br = "\n" )
-	{
-		echo self::formatCard( $key, $charset, $codelength, $cardnum, $title, $br );
-	}
-
-	static public function formatCard( $key, $charset, $codelength, $cardnum, $title="PPP Card", $br = "\n" )
-	{
-		$o = array();
-		if( $charset === null )
-			$charset = self::DEFAULT_CHARSET;
-
-		$o[] = sprintf( '%-30.30s%8s' , $title , '['.$cardnum.']' );
-
-		$rows = 10;
-		$cols = floor( 35/($codelength+1) );
-		$total = $rows*$cols;
-		$r = '    ';
-		for ($i = 0; $i < $cols; $i++)
-		{
-			$r .= str_pad(chr(ord('A')+$i), $codelength+1, ' ', STR_PAD_BOTH);
-		}
-		$o[] = $r;
-
-		$r = '';
-		$codes = self::getCodes($key,bcmul($cardnum,$total),$total,$charset,$codelength);
-		for ($i = 0; $i < $total; $i++)
-		{
-			$code = $codes[$i];
-			if ($i % $cols == 0)
-				$r = sprintf('%2s: ',ceil(($i+1)/$cols));
-
-			if ($i % $cols < $cols-1)
-				$r .= $code.' ';
-			else
-				$o[] = $r.$code;
-		}
-
-		$o = implode($br, $o);
-		return $o;
-	}
+    /**
+     * Converts the given string-represented number (key) into a sequence of strings
+     * from the given charset, all joined by the given glue.
+     *
+     * eg. CryptoPPP::keyToTokenBlocks( $key )  would give something like 'a4j6-n7N2'
+     **/
+    static public function keyToTokenBlocks($number , $blocklen=4, $blockcount=2, $glue='-', $charset=null)
+    {
+        $base = self::keyToToken($number, ($blockcount * $blocklen), $charset);
+        $blocks = str_split($base, $blocklen);
+        $blocks = join($glue, $blocks);
+        return $blocks;
+    }
 
 
-	static public function formatCardAsHTMLTable( $key, $charset, $codelength, $cardnum, $title ="PPP Card", $show_used = false )
-	{
-		$o = array();
-		if( $charset === null )
-			$charset = self::DEFAULT_CHARSET;
+    static public function allGood()
+    {
+        $algos = hash_algos();
+        if (!in_array("sha256", $algos)) return "sha256 not available";
+        if (!is_callable('bcadd')) return "bcadd not available";
+        if (is_callable('mcrypt_list_algorithms')) {
+            $mcrypt_algos = mcrypt_list_algorithms();
+            if (!in_array("rijndael-128", $mcrypt_algos)) {
+                return "rijndael-128 not available";
+            }
+        } else {
+            return "mcrypt not installed";
+        }
 
-		$cdnum = max( 0, $cardnum - 1 );
+        return true;
+    }
 
-		$rows  = 10;
-		$cols  = floor( 35/($codelength+1) );
-		$total = $rows * $cols;
 
-		$o[] =<<<HTML
+    static protected function getPPPCode($key, $sequence_num)
+    {
+        static $skey = false;
+        static $sk   = false;
+        if ($key !== $skey) {
+            $sk = pack("H*", $key);
+            $skey = $key;
+        }
+
+        $n_bits = self::pack128($sequence_num);
+        $enc_bits = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $sk, $n_bits, MCRYPT_MODE_ECB, str_repeat( "\0", 16 ));
+        $numdec = self::unpack128($enc_bits);
+        return $numdec;
+    }
+
+
+    static public function getLotto($key, $code)
+    {
+        $numdec = self::getPPPCode($key, $code);
+        $chars = "";
+        for ($i = 0; $i < 5; $i++) {
+            $chars .= bcadd(bcmod($numdec, 56), 1);
+            if ($i < 4)
+                $chars .= ", ";
+            else
+                $chars .= " / ";
+            $numdec = bcdiv($numdec, 56);
+        }
+        $chars .= bcadd(bcmod($numdec, 46), 1);
+        return $chars;
+    }
+
+
+    // returns the nth number (Ex.: Port numbers, etc.)
+    static public function getNum($key, $code, $codemin, $codemax)
+    {
+        $length = 1+$codemax-$codemin;
+        $numdec = self::getPPPCode($key, $code);
+        return bcadd(bcmod($numdec, $length), $codemin);
+    }
+
+
+    // returns the nth port and code - Based on idea from Hank Beaver in the GRC newsgroups
+    static public function getPortCode($key, $code, $codemin, $codemax)
+    {
+        $codes = array();
+        $length = 1 + $codemax - $codemin;
+        $numdec = self::getPPPCode($key, $code);
+        array_push($codes, bcadd(bcmod($numdec, $length), $codemin));
+        $numdec = bcdiv($numdec, $length);
+        $charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+        $length = strlen($charset);
+        $codelength = 2;
+        $chars = "";
+        for ($i = 0; $i < $codelength; $i++) {
+            $chars .= substr($charset, bcmod($numdec, $length), 1);
+            $numdec = bcdiv($numdec, $length);
+        }
+        array_push($codes, $chars);
+        return $codes;
+    }
+
+
+    // returns the nth code
+    static public function getCode($key, $code, $charset = null, $codelength = 4)
+    {
+        if (is_null($charset))
+            $charset = self::DEFAULT_CHARSET;
+        $charset = self::sortchars($charset);
+        $length = strlen($charset);
+        $blockchars = self::blockchars($length);
+        $numdec = self::getPPPCode($key, $code);
+        $chars = "";
+        for ($i = 0; $i < $codelength; $i++) {
+            $chars .= substr($charset, bcmod($numdec, $length), 1);
+            $numdec = bcdiv($numdec, $length);
+        }
+        return $chars;
+    }
+
+
+    // return an array of the codes requested
+    static public function getCodes($key, $code, $num, $charset = null, $codelength = 4)
+    {
+        if (is_null($charset))
+            $charset = self::DEFAULT_CHARSET;
+        $codes = array();
+        $first = $code;
+        $last = bcadd($code, $num);
+        $charset = self::sortchars($charset);
+        $length = strlen($charset);
+        $blockchars = self::blockchars($length);
+        #$sk = pack("H*", $key);
+        for ($h = $first; bccomp($h,$last) < 0; $h = bcadd($h, 1)) {
+            #$n_bits = pack128($h);
+            #$enc_bits = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $sk, $n_bits, MCRYPT_MODE_ECB, str_repeat( "\0", 16 ));
+            #$numdec = unpack128($enc_bits);
+            $numdec = self::getPPPCode($key, $h);
+            $chars = "";
+            for ($i = 0; $i < $codelength; $i++) {
+                $chars .= substr($charset, bcmod($numdec, $length), 1);
+                $numdec = bcdiv($numdec, $length);
+            }
+            array_push($codes, $chars);
+        }
+        return $codes;
+    }
+
+
+    // prints a card
+    static public function printCard($key, $charset, $codelength, $cardnum, $title="PPP Card", $br = "\n")
+    {
+        echo self::formatCard($key, $charset, $codelength, $cardnum, $title, $br);
+    }
+
+
+    static public function formatCard($key, $charset, $codelength, $cardnum, $title="PPP Card", $br = "\n")
+    {
+        $o = array();
+        if( $charset === null )
+            $charset = self::DEFAULT_CHARSET;
+
+        $o[] = sprintf('%-30.30s%8s', $title, '['.$cardnum.']');
+
+        $rows = 10;
+        $cols = floor(35 / ($codelength+1));
+        $total = $rows * $cols;
+        $r = '    ';
+        for ($i = 0; $i < $cols; $i++) {
+            $r .= str_pad(chr(ord('A') + $i), $codelength+1, ' ', STR_PAD_BOTH);
+        }
+        $o[] = $r;
+
+        $r = '';
+        $codes = self::getCodes($key, bcmul($cardnum, $total), $total, $charset, $codelength);
+        for ($i = 0; $i < $total; $i++) {
+            $code = $codes[$i];
+            if ($i % $cols == 0)
+                $r = sprintf('%2s: ', ceil(($i+1) / $cols));
+
+            if ($i % $cols < $cols-1)
+                $r .= $code.' ';
+            else
+                $o[] = $r.$code;
+        }
+
+        $o = implode($br, $o);
+        return $o;
+    }
+
+
+    static public function formatCardAsHTMLTable($key, $charset, $codelength, $cardnum, $title ="PPP Card", $show_used = false)
+    {
+        $o = array();
+        if( $charset === null )
+            $charset = self::DEFAULT_CHARSET;
+
+        $cdnum = max(0, $cardnum - 1);
+
+        $rows  = 10;
+        $cols  = floor(35 / ($codelength+1));
+        $total = $rows * $cols;
+
+        $o[] =<<<HTML
 <style>
   table.pppcard {
-	font-family: monospace;
-	border: 1px solid #333;
+    font-family: monospace;
+    border: 1px solid #333;
     float: left;
     margin: 4px;
   }
   table.pppcard td {
-	padding: 0 .8em;
+    padding: 0 .8em;
   }
 </style>
 <table class="pppcard">
   <thead>
     <tr>
-	  <th colspan="$cols">$title</th>
-	  <th colspan="1">[$cardnum]</th>
+      <th colspan="$cols">$title</th>
+      <th colspan="1">[$cardnum]</th>
     </tr>
   </thead>
   <tbody>
-	<tr>
+    <tr>
       <td>&nbsp;</td>
 HTML;
 
-		for ($i = 0; $i < $cols; $i++)
-		{
-			$o[] = "<td>" . chr(ord('A')+$i) . "</td>";
-		}
-		$o[] = "</tr>\n";
+        for ($i = 0; $i < $cols; $i++) {
+            $o[] = "<td>" . chr(ord('A')+$i) . "</td>";
+        }
+        $o[] = "</tr>\n";
 
-		$i = 0;
-		$codes = self::getCodes($key,bcmul($cdnum,$total),$total,$charset,$codelength);
-		for ($r = 0; $r < $rows; $r++)
-		{
-			$rn = 1 + $r;
-			$o[] = "<tr>\n<td>$rn</td>\n";
+        $i = 0;
+        $codes = self::getCodes($key, bcmul($cdnum, $total), $total, $charset, $codelength);
+        for ($r = 0; $r < $rows; $r++) {
+            $rn = 1 + $r;
+            $o[] = "<tr>\n<td>$rn</td>\n";
 
-			for ($c = 0; $c < $cols; $c++ )
-			{
-				$del = ( is_int($show_used) && (bcmul($cdnum,$total) + $i) <= $show_used );
-				$code = $codes[$i++];
+            for ($c = 0; $c < $cols; $c++ ) {
+                $del = (is_int($show_used) && (bcmul($cdnum, $total) + $i) <= $show_used);
+                $code = $codes[$i++];
 
-				if( $del )
-					$o[] = "<td><del>" . htmlspecialchars($code, ENT_QUOTES, "utf8") . "</del></td>\n";
-				else
-					$o[] = "<td>" . htmlspecialchars($code, ENT_QUOTES, "utf8") . "</td>\n";
-			}
-			$o[] = "</tr>\n";
-		}
+                if ($del)
+                    $o[] = "<td><del>" . htmlspecialchars($code, ENT_QUOTES, "utf8") . "</del></td>\n";
+                else
+                    $o[] = "<td>" . htmlspecialchars($code, ENT_QUOTES, "utf8") . "</td>\n";
+            }
+            $o[] = "</tr>\n";
+        }
 
-		$o[] =<<<HTML
+        $o[] =<<<HTML
     </tr>
   </tbody>
 </table>
 HTML;
 
-		$o = implode('',$o);
-		return $o;
-	}
+        $o = implode('', $o);
+        return $o;
+    }
 
-	static public function numberToIndex( $num, $codelength = 4 )
-	{
-		$rows = 10;
-		$cols = floor(35/($codelength+1));
-		$total_per_page = $rows*$cols;
 
-		$o['page'] = 1 + floor($num /  $total_per_page);
-		$o['row']  = 1 + floor(($num %  $total_per_page) / $cols);
-		$o['col']  = $num % $cols;
-		$o['col']  = chr(ord("A")+$o['col']);
-		$o['cell'] = $o['row'] . $o['col'];
-		$o['seq']  = $num;
+    static public function numberToIndex($num, $codelength = 4)
+    {
+        $rows = 10;
+        $cols = floor(35 / ($codelength + 1));
+        $total_per_page = $rows * $cols;
 
-		return $o;
-	}
+        $o['page'] = 1 + floor($num /  $total_per_page);
+        $o['row']  = 1 + floor(($num %  $total_per_page) / $cols);
+        $o['col']  = $num % $cols;
+        $o['col']  = chr(ord("A") + $o['col']);
+        $o['cell'] = $o['row'] . $o['col'];
+        $o['seq']  = $num;
 
+        return $o;
+    }
 }
 
+//eof
