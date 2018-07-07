@@ -20,7 +20,7 @@ class CryptoPPP extends Wire implements Module
             'version'  => '3.1.0',
             'author'   => __('Portions by Orson Jones, Bob Somers, Daniel Hodder. Packaged as a module by Netcarver'),
             'singular' => true,
-            'autoload' => true,
+            'autoload' => 'template=admin',
             'href'     => 'http://www.grc.com/ppp/design.htm',
         );
     }
