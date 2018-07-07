@@ -15,10 +15,10 @@ class CryptoPPP extends Wire implements Module
     public static function getModuleInfo()
     {
         return array(
-            'title'    => __('PPP Crypto Library', __FILE__),
-            'summary'  => __("Implements Steve Gibson's PPP one-time-pad system.", __FILE__),
-            'version'  => 301,
-            'author'   => 'Portions by Orson Jones, Bob Somers, Daniel Hodder. Packaged as a module by Netcarver',
+            'title'    => __('PPP Crypto Library'),
+            'summary'  => __("Implements Steve Gibson's PPP one-time-pad system."),
+            'version'  => '3.1.0',
+            'author'   => __('Portions by Orson Jones, Bob Somers, Daniel Hodder. Packaged as a module by Netcarver'),
             'singular' => true,
             'autoload' => true,
             'href'     => 'http://www.grc.com/ppp/design.htm',
@@ -42,7 +42,7 @@ class CryptoPPP extends Wire implements Module
         if (is_string($good))
             throw new WireException($good);
         else
-            $this->message("Infrastructure needed for PPP is available on this platform.");
+            $this->message(__("Infrastructure needed for PPP is available on this platform."));
     }
 
 
@@ -188,15 +188,15 @@ class CryptoPPP extends Wire implements Module
     static public function allGood()
     {
         $algos = hash_algos();
-        if (!in_array("sha256", $algos)) return "sha256 not available";
-        if (!is_callable('bcadd')) return "bcadd not available";
-        if (is_callable('mcrypt_list_algorithms')) {
-            $mcrypt_algos = mcrypt_list_algorithms();
-            if (!in_array("rijndael-128", $mcrypt_algos)) {
-                return "rijndael-128 not available";
+        if (!in_array("sha256", $algos)) return __("sha256 not available");
+        if (!is_callable('bcadd')) return __("bcadd not available");
+        if (is_callable('openssl_get_cipher_methods')) {
+            $ciphers = openssl_get_cipher_methods();
+            if (!in_array("AES-256-ECB", $ciphers)) {
+                return __("aes/rijndael-128/256 not available");
             }
         } else {
-            return "mcrypt not installed";
+            return __("OpenSSL not installed");
         }
 
         return true;
@@ -213,7 +213,8 @@ class CryptoPPP extends Wire implements Module
         }
 
         $n_bits = self::pack128($sequence_num);
-        $enc_bits = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $sk, $n_bits, MCRYPT_MODE_ECB, str_repeat( "\0", 16 ));
+        $openssl_padding = str_repeat("\0", 16 - strlen($n_bits));
+        $enc_bits = openssl_encrypt($n_bits . $openssl_padding, "aes-256-ecb", $sk, OPENSSL_NO_PADDING);
         $numdec = self::unpack128($enc_bits);
         return $numdec;
     }

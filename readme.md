@@ -7,12 +7,9 @@ Implements Steve Gibson's [PPP One-Time-Pad System](https://grc.com/ppp/design.h
 Pre-requisites
 ----
 
-Requires the mcrypt and bcmaths PHP extensions to be installed before the module will install properly.
+Requires OpenSSL and bcmaths PHP extension to be installed.
 
-On debian based systems you can install mcrypt as follows...
-
-    # apt-get install php5-mcrypt mcrypt
-    # php5enmod mcrypt
+Version 3.1.0 changed from the, now deprecated, mcrypt library over to using OpenSSL internally.
 
 
 Generating A Single Key
