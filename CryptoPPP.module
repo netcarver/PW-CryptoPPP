@@ -17,7 +17,7 @@ class CryptoPPP extends Wire implements Module
         return array(
             'title'    => __('PPP Crypto Library'),
             'summary'  => __("Implements Steve Gibson's PPP one-time-pad system."),
-            'version'  => '4.0.0',
+            'version'  => '3.1.0',
             'author'   => __('Portions by Orson Jones, Bob Somers, Daniel Hodder. Packaged as a module by Netcarver'),
             'singular' => true,
             'autoload' => true,
